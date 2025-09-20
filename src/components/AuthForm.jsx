@@ -25,6 +25,11 @@ const AuthForm = () => {
   const validateForm = () => {
     const newErrors = {};
     
+    // If not registering, email is not required
+    if (!isRegistering){
+      delete formData.email;
+    }
+
     if (isRegistering && !formData.email) {
       newErrors.email = 'Please enter an email.';
     }
@@ -37,6 +42,7 @@ const AuthForm = () => {
     if (isRegistering && formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email.';
     }
+    console.log('formData:', formData);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -45,7 +51,11 @@ const AuthForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('isRegistering:', isRegistering);
+      console.log('Form validation failed.');
+      return;
+    }
 
     setIsLoading(true);
     try {
