@@ -13,7 +13,8 @@ export const authApi = {
       }
     )
 
-    if (!response.ok) throw new Error('Login failed')
+    if (!response.ok)
+      throw new Error('Wrong username or password')
     return response.json()
   },
 
@@ -29,7 +30,12 @@ export const authApi = {
       }
     )
 
-    if (!response.ok) throw new Error('Registration failed')
+    if (!response.ok)
+      throw new Error(
+        'Registration failed. ' +
+          JSON.parse(await response.text()).error +
+          '.'
+      )
     return response.json()
   },
 }

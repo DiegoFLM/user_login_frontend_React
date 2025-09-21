@@ -1,8 +1,12 @@
-// src/components/AuthForm.jsx
 import React, { useState } from 'react';
 import Button from './Button.jsx';
 import Input from './Input.jsx';
 import { authApi } from '../services/authApi.js';
+import { 
+  validateLogin, 
+  validateRegister, 
+  getErrorMessage 
+} from '../validation/authSchemas.js';
 
 const AuthForm = () => {
   const [formData, setFormData] = useState({
@@ -23,48 +27,42 @@ const AuthForm = () => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const validation = isRegistering 
+      ? validateRegister(formData)
+      : validateLogin(formData);
     
-    // If not registering, email is not required
-    if (!isRegistering){
-      delete formData.email;
+    if (!validation.success) {
+      const newErrors = {};
+      // Corrected: use validation.error.issues instead of validation.error.errors
+      validation.error.issues.forEach(issue => {
+        const field = issue.path[0];
+        newErrors[field] = issue.message;
+      });
+      setErrors(newErrors);
+      return false;
     }
-
-    if (isRegistering && !formData.email) {
-      newErrors.email = 'Please enter an email.';
-    }
-    if (!formData.username) {
-      newErrors.username = 'Please enter a username.';
-    }
-    if (!formData.password) {
-      newErrors.password = 'Please enter a password.';
-    }
-    if (isRegistering && formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email.';
-    }
-    console.log('formData:', formData);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      console.log('isRegistering:', isRegistering);
-      console.log('Form validation failed.');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
+      // For login, only send username and password
+      const payload = isRegistering 
+        ? formData 
+        : { username: formData.username, password: formData.password };
+      
       const data = isRegistering
-        ? await authApi.register(formData)
-        : await authApi.login(formData);
+        ? await authApi.register(payload)
+        : await authApi.login(payload);
       
       // Handle successful authentication (e.g., store token, redirect)
-      console.log('isRegistering:', isRegistering);
       console.log('Auth successful:', data);
       
     } catch (error) {
@@ -74,10 +72,19 @@ const AuthForm = () => {
     }
   };
 
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setErrors({});
+    // Clear email field when switching to login mode
+    if (!isRegistering) {
+      setFormData(prev => ({ ...prev, email: '' }));
+    }
+  };
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
-        User Account
+        {isRegistering ? 'Create Account' : 'Login'}
       </h1>
       
       <form className="space-y-4" onSubmit={handleSubmit}>
@@ -87,8 +94,8 @@ const AuthForm = () => {
             type="email"
             value={formData.email}
             onChange={handleInputChange('email')}
-            placeholder="Enter your email"
             error={errors.email}
+            placeholder="Enter your email"
           />
         )}
 
@@ -97,8 +104,8 @@ const AuthForm = () => {
           type="text"
           value={formData.username}
           onChange={handleInputChange('username')}
-          placeholder="Enter your username"
           error={errors.username}
+          placeholder="Enter your username"
         />
 
         <Input 
@@ -106,8 +113,8 @@ const AuthForm = () => {
           type="password"
           value={formData.password}
           onChange={handleInputChange('password')}
-          placeholder="Enter your password"
           error={errors.password}
+          placeholder="Enter your password"
           showPasswordToggle={true}
         />
 
@@ -128,10 +135,7 @@ const AuthForm = () => {
 
       <div className="mt-4 text-center">
         <button 
-          onClick={() => {
-            setIsRegistering(!isRegistering);
-            setErrors({});
-          }}
+          onClick={toggleMode}
           className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
         >
           {isRegistering ? 'Already have an account? Login here.' : 'Don\'t have an account? Register here.'}
