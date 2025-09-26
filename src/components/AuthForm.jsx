@@ -7,6 +7,7 @@ import {
   validateRegister, 
   getErrorMessage 
 } from '../validation/authSchemas.js';
+import { useNavigate } from 'react-router-dom';
 
 const AuthForm = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ const AuthForm = () => {
     username: '',
     password: ''
   });
+  const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -63,7 +65,10 @@ const AuthForm = () => {
         : await authApi.login(payload);
       
       // Handle successful authentication (e.g., store token, redirect)
-      console.log('Auth successful:', data);
+      // Explicit console output so it's obvious in the browser console
+      console.log('Auth successful (backend response):', data);
+      // Navigate to dashboard after successful auth
+      navigate('/dashboard');
       
     } catch (error) {
       setErrors({ general: error.message });
